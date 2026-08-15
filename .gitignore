@@ -1,0 +1,19 @@
+node_modules/
+
+# 构建产物：clone 后跑 npm run build 生成
+dist/
+
+# 编辑器/IDE 的项目级配置，不随仓库发布
+.qoder/
+
+# 临时与本地文件
+tmp-*/
+*.log
+.env
+.env.*
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

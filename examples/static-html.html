@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>订单管理 - 静态 HTML 标注示例</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 "Segoe UI", "Microsoft YaHei", sans-serif; color: #1f2937; background: #f4f6f9; }
+  header.top { display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: #111827; color: #fff; }
+  header.top h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header.top .who { margin-left: auto; font-size: 13px; opacity: .8; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px; }
+  .hint { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+  .hint b { color: #047857; }
+  .hint kbd { background: #fff; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+  section.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  section.card > h2 { margin: 0 0 16px; font-size: 15px; }
+  .filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: #6b7280; }
+  input, select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font: inherit; min-width: 160px; }
+  button { padding: 7px 16px; border-radius: 6px; border: 1px solid transparent; font: inherit; cursor: pointer; }
+  .primary { background: #2563eb; color: #fff; }
+  .plain { background: #fff; border-color: #d1d5db; }
+  .danger { background: #fff; border-color: #fecaca; color: #b91c1c; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+  th { font-size: 12px; color: #6b7280; font-weight: 600; background: #f9fafb; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; }
+  .tag.paid { background: #dcfce7; color: #166534; }
+  .tag.wait { background: #fef3c7; color: #92400e; }
+  .tag.closed { background: #f1f5f9; color: #475569; }
+  .money { font-variant-numeric: tabular-nums; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat { background: #f9fafb; border: 1px solid #eef2f7; border-radius: 8px; padding: 14px; }
+  .stat .n { font-size: 22px; font-weight: 700; }
+  .stat .t { font-size: 12px; color: #6b7280; }
+  footer.bar { display: flex; gap: 10px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>订单管理平台</h1>
+  <nav><a href="#orders" style="color:#93c5fd">订单</a></nav>
+  <span class="who" data-testid="current-user">当前操作员：李明（区域经理）</span>
+</header>
+
+<main>
+  <div class="hint">
+    <b>怎么用：</b>右上角工具栏 → 点 <kbd>E</kbd> 选元素标注、<kbd>R</kbd> 框选区域、<kbd>S</kbd> 看清单、<kbd>H</kbd> 显隐标记。
+    标注完点 <b>&lt;/&gt;</b> 导出配置 JSON，点 <b>✦</b> 复制 AI 提示词。本页用 <code>file://</code> 直接打开即可。
+  </div>
+
+  <section class="card" id="overview">
+    <h2>今日概览</h2>
+    <div class="stats">
+      <div class="stat" data-testid="stat-pending"><div class="n">28</div><div class="t">待付款</div></div>
+      <div class="stat" data-testid="stat-paid"><div class="n">146</div><div class="t">已付款</div></div>
+      <div class="stat" data-testid="stat-refund"><div class="n">3</div><div class="t">退款中</div></div>
+      <div class="stat" data-testid="stat-gmv"><div class="n money">¥ 82,430</div><div class="t">今日成交额</div></div>
+    </div>
+  </section>
+
+  <section class="card" id="orders">
+    <h2>订单查询</h2>
+    <form class="filters" id="order-filter" onsubmit="return false">
+      <div class="field">
+        <label for="f-no">订单号</label>
+        <input id="f-no" name="orderNo" placeholder="如 SO20260815001">
+      </div>
+      <div class="field">
+        <label for="f-status">订单状态</label>
+        <select id="f-status" name="status">
+          <option value="">全部</option>
+          <option value="wait">待付款</option>
+          <option value="paid">已付款</option>
+          <option value="closed">已关闭</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-from">下单开始日期</label>
+        <input id="f-from" name="createdFrom" type="date" value="2026-08-01">
+      </div>
+      <div class="field">
+        <label for="f-to">下单结束日期</label>
+        <input id="f-to" name="createdTo" type="date" value="2026-08-15">
+      </div>
+      <button class="primary" id="btn-search" type="submit">查询</button>
+      <button class="plain" id="btn-reset" type="reset">重置</button>
+    </form>
+
+    <table id="order-table" style="margin-top:18px">
+      <thead>
+        <tr><th>订单号</th><th>客户</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        <tr data-order-id="SO20260815001">
+          <td>SO20260815001</td><td>杭州明远贸易</td><td class="money">¥ 12,800.00</td>
+          <td><span class="tag wait">待付款</span></td><td>2026-08-15 09:12</td>
+          <td><button class="plain">详情</button> <button class="danger">关闭</button></td>
+        </tr>
+        <tr data-order-id="SO20260814037">
+          <td>SO20260814037</td><td>深圳蓝海科技</td><td class="money">¥ 46,300.00</td>
+          <td><span class="tag paid">已付款</span></td><td>2026-08-14 16:48</td>
+          <td><button class="plain">详情</button> <button class="danger">退款</button></td>
+        </tr>
+        <tr data-order-id="SO20260813112">
+          <td>SO20260813112</td><td>成都晨曦供应链</td><td class="money">¥ 3,120.00</td>
+          <td><span class="tag closed">已关闭</span></td><td>2026-08-13 11:05</td>
+          <td><button class="plain">详情</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card" id="approve">
+    <h2>大额订单审批</h2>
+    <p style="color:#6b7280;margin-top:0">金额超过 ¥ 30,000 的订单需要区域经理复核后才能出库。</p>
+    <div class="field" style="max-width:420px">
+      <label for="approve-note">复核意见</label>
+      <input id="approve-note" name="approveNote" placeholder="必填，不少于 10 个字">
+    </div>
+    <footer class="bar" style="margin-top:16px">
+      <button class="plain" id="btn-reject">驳回</button>
+      <button class="primary" id="btn-approve">通过并出库</button>
+    </footer>
+  </section>
+</main>
+
+<script src="../dist/ui-annotator.umd.js"
+        data-auto
+        data-project="订单管理平台"
+        data-author="产品经理"
+        data-domain="B2B 订单履约"></script>
+</body>
+</html>

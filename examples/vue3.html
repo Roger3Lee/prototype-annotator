@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Vue 3 标注示例</title>
+<style>
+  body { margin:0; font:14px/1.6 "Segoe UI","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; }
+  .wrap { max-width:900px; margin:0 auto; padding:24px; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin-bottom:16px; }
+  h1 { font-size:18px; } h2 { font-size:15px; margin:0 0 14px; }
+  input, select { padding:7px 10px; border:1px solid #d1d5db; border-radius:6px; font:inherit; }
+  button { padding:7px 14px; border-radius:6px; border:1px solid transparent; background:#2563eb; color:#fff; font:inherit; cursor:pointer; }
+  button.plain { background:#fff; border-color:#d1d5db; color:#1f2937; }
+  ul { padding-left:0; list-style:none; } li { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9; }
+  li.done span.txt { text-decoration:line-through; color:#9ca3af; }
+  .muted { color:#6b7280; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="../dist/ui-annotator.umd.js"></script>
+<script>
+const { createApp, ref, computed } = Vue;
+
+// 拆成多个组件，用来验证组件名 / 组件路径策略（componentPath）能被正确采集
+const TaskFilter = {
+  name: 'TaskFilter',
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+  template: `
+    <section class="card">
+      <h2>筛选</h2>
+      <select :value="modelValue" @change="$emit('update:modelValue', $event.target.value)">
+        <option value="all">全部</option>
+        <option value="open">未完成</option>
+        <option value="done">已完成</option>
+      </select>
+    </section>`,
+};
+
+const TaskItem = {
+  name: 'TaskItem',
+  props: ['task'],
+  emits: ['toggle', 'remove'],
+  template: `
+    <li :class="{ done: task.done }">
+      <input type="checkbox" :checked="task.done" @change="$emit('toggle', task.id)">
+      <span class="txt">{{ task.title }}</span>
+      <span class="muted">{{ task.owner }}</span>
+      <button class="plain" style="margin-left:auto" @click="$emit('remove', task.id)">删除</button>
+    </li>`,
+};
+
+const TaskList = {
+  name: 'TaskList',
+  components: { TaskItem },
+  props: ['tasks'],
+  emits: ['toggle', 'remove'],
+  template: `
+    <section class="card">
+      <h2>任务列表（{{ tasks.length }}）</h2>
+      <ul><TaskItem v-for="t in tasks" :key="t.id" :task="t" @toggle="$emit('toggle', $event)" @remove="$emit('remove', $event)" /></ul>
+    </section>`,
+};
+
+const App = {
+  name: 'App',
+  components: { TaskFilter, TaskList },
+  setup() {
+    const filter = ref('all');
+    const draft = ref('');
+    const tasks = ref([
+      { id: 1, title: '梳理订单履约流程', owner: '李明', done: false },
+      { id: 2, title: '确认退款审批门槛', owner: '王芳', done: true },
+      { id: 3, title: '补齐库存扣减规则', owner: '张伟', done: false },
+    ]);
+    const visible = computed(() => tasks.value.filter((t) =>
+      filter.value === 'all' ? true : filter.value === 'done' ? t.done : !t.done));
+    const add = () => {
+      if (!draft.value.trim()) return;
+      tasks.value.push({ id: Date.now(), title: draft.value.trim(), owner: '未分配', done: false });
+      draft.value = '';
+    };
+    return { filter, draft, tasks, visible, add,
+      toggle: (id) => { const t = tasks.value.find((x) => x.id === id); if (t) t.done = !t.done; },
+      remove: (id) => { tasks.value = tasks.value.filter((x) => x.id !== id); } };
+  },
+  template: `
+    <div class="wrap">
+      <h1>需求任务板（Vue 3）</h1>
+      <p class="muted">工具栏在右上角：E 选元素 · R 框选 · S 清单 · H 显隐。切换筛选或删除任务后标记会自动重新锚定。</p>
+      <TaskFilter v-model="filter" />
+      <section class="card">
+        <h2>新增任务</h2>
+        <input v-model="draft" placeholder="输入任务标题" style="min-width:280px" @keyup.enter="add">
+        <button @click="add">添加</button>
+      </section>
+      <TaskList :tasks="visible" @toggle="toggle" @remove="remove" />
+    </div>`,
+};
+
+createApp(App).mount('#app');
+
+// Vue 挂载完成后再启动标注器，否则抽取上下文时页面还是空的
+UIAnnotator.init({ project: '需求任务板', domain: '研发协作', author: '产品经理' });
+</script>
+</body>
+</html>

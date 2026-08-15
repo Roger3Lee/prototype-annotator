@@ -1,0 +1,47 @@
+{
+  "name": "ui-annotator",
+  "version": "0.1.0",
+  "description": "在 HTML / Vue / React 界面上定位元素、标注业务逻辑，并导出可供 AI design 消费的配置数据",
+  "type": "module",
+  "main": "./dist/ui-annotator.umd.js",
+  "module": "./dist/ui-annotator.esm.js",
+  "browser": "./dist/ui-annotator.umd.js",
+  "unpkg": "./dist/ui-annotator.umd.min.js",
+  "exports": {
+    ".": {
+      "import": "./dist/ui-annotator.esm.js",
+      "require": "./dist/ui-annotator.umd.js"
+    },
+    "./dist/*": "./dist/*"
+  },
+  "files": [
+    "dist",
+    "src",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch --serve",
+    "serve": "node build.mjs --serve",
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "annotation",
+    "annotator",
+    "ui-annotation",
+    "business-logic",
+    "vue",
+    "react",
+    "ai-design",
+    "prototype"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.23.0",
+    "playwright-core": "^1.62.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,132 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>React 标注示例</title>
+<style>
+  body { margin:0; font:14px/1.6 "Segoe UI","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; }
+  .wrap { max-width:900px; margin:0 auto; padding:24px; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin-bottom:16px; }
+  h1 { font-size:18px; } h2 { font-size:15px; margin:0 0 14px; }
+  input, select { padding:7px 10px; border:1px solid #d1d5db; border-radius:6px; font:inherit; }
+  button { padding:7px 14px; border-radius:6px; border:1px solid transparent; background:#2563eb; color:#fff; font:inherit; cursor:pointer; }
+  button.plain { background:#fff; border-color:#d1d5db; color:#1f2937; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:9px 10px; border-bottom:1px solid #f1f5f9; }
+  th { font-size:12px; color:#6b7280; background:#f9fafb; }
+  .muted { color:#6b7280; font-size:13px; }
+  .tag { padding:1px 8px; border-radius:999px; font-size:12px; background:#dcfce7; color:#166534; }
+  .tag.off { background:#fee2e2; color:#991b1b; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- 用 development 版本，React fiber 上才带得上组件调试信息 -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../dist/ui-annotator.umd.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+
+// 具名函数组件：定位引擎的 componentPath 策略靠函数名拼出 App>MemberTable>MemberRow
+function RoleFilter({ value, onChange }) {
+  return (
+    <section className="card">
+      <h2>角色筛选</h2>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="all">全部角色</option>
+        <option value="admin">管理员</option>
+        <option value="editor">编辑</option>
+        <option value="viewer">只读</option>
+      </select>
+    </section>
+  );
+}
+
+function MemberRow({ member, onToggle }) {
+  return (
+    <tr data-member-id={member.id}>
+      <td>{member.name}</td>
+      <td>{member.email}</td>
+      <td>{ROLE_LABEL[member.role]}</td>
+      <td><span className={'tag' + (member.active ? '' : ' off')}>{member.active ? '已启用' : '已停用'}</span></td>
+      <td>
+        <button className="plain" onClick={() => onToggle(member.id)}>
+          {member.active ? '停用' : '启用'}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+function MemberTable({ members, onToggle }) {
+  return (
+    <section className="card">
+      <h2>成员列表（{members.length}）</h2>
+      <table>
+        <thead><tr><th>姓名</th><th>邮箱</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody>
+          {members.map((m) => <MemberRow key={m.id} member={m} onToggle={onToggle} />)}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function InviteForm({ onInvite }) {
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('viewer');
+  return (
+    <section className="card">
+      <h2>邀请成员</h2>
+      <input id="invite-email" placeholder="对方邮箱" value={email} style={{ minWidth: 260 }}
+             onChange={(e) => setEmail(e.target.value)} />
+      <select id="invite-role" value={role} onChange={(e) => setRole(e.target.value)} style={{ marginLeft: 8 }}>
+        <option value="viewer">只读</option>
+        <option value="editor">编辑</option>
+        <option value="admin">管理员</option>
+      </select>
+      <button style={{ marginLeft: 8 }} onClick={() => { onInvite(email, role); setEmail(''); }}>发送邀请</button>
+      <p className="muted" style={{ marginBottom: 0 }}>管理员名额上限 3 人，超出后该选项不可选。</p>
+    </section>
+  );
+}
+
+const ROLE_LABEL = { admin: '管理员', editor: '编辑', viewer: '只读' };
+
+function App() {
+  const [filter, setFilter] = useState('all');
+  const [members, setMembers] = useState([
+    { id: 1, name: '李明', email: 'liming@example.com', role: 'admin', active: true },
+    { id: 2, name: '王芳', email: 'wangfang@example.com', role: 'editor', active: true },
+    { id: 3, name: '张伟', email: 'zhangwei@example.com', role: 'viewer', active: false },
+  ]);
+  const visible = useMemo(
+    () => members.filter((m) => filter === 'all' || m.role === filter),
+    [members, filter]
+  );
+  return (
+    <div className="wrap">
+      <h1>团队权限管理（React 18）</h1>
+      <p className="muted">工具栏在右上角：E 选元素 · R 框选 · S 清单 · H 显隐。切换筛选后标记会自动重新锚定，找不到元素的会标为 orphaned。</p>
+      <RoleFilter value={filter} onChange={setFilter} />
+      <InviteForm onInvite={(email, role) => email && setMembers((prev) =>
+        [...prev, { id: Date.now(), name: email.split('@')[0], email, role, active: true }])} />
+      <MemberTable members={visible} onToggle={(id) => setMembers((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, active: !m.active } : m)))} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+// React 首次提交是异步的，等一帧再启动，保证抽取上下文时 DOM 已经渲染
+requestAnimationFrame(() => {
+  UIAnnotator.init({ project: '团队权限管理', domain: '组织与权限', author: '产品经理' });
+});
+</script>
+</body>
+</html>

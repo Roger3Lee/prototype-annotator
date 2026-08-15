@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>发布态：内联标注 + 只读查看</title>
+<style>
+  body { margin:0; font:14px/1.6 "Segoe UI","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; }
+  .wrap { max-width:860px; margin:0 auto; padding:24px; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin-bottom:16px; }
+  h1 { font-size:18px; } h2 { font-size:15px; margin:0 0 14px; }
+  dl { display:grid; grid-template-columns:120px 1fr; gap:8px 12px; margin:0; }
+  dt { color:#6b7280; font-size:13px; } dd { margin:0; }
+  button { padding:7px 14px; border-radius:6px; border:1px solid transparent; background:#2563eb; color:#fff; font:inherit; cursor:pointer; }
+  button.plain { background:#fff; border-color:#d1d5db; color:#1f2937; }
+  .bar { display:flex; gap:10px; }
+  .note { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 16px; margin-bottom:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note">
+    <b>发布态演示：</b>这一页没有任何本地存储，标注全部内联在 HTML 里（<code>&lt;script type="application/json"&gt;</code>），
+    并以 <b>只读模式</b> 启动 —— 任何人双击打开就能看到业务逻辑说明，不能误改。把导出的 JSON 贴进页面底部即可发布。
+  </div>
+
+  <h1>订单详情</h1>
+
+  <section class="card" id="order-basic">
+    <h2>基本信息</h2>
+    <dl>
+      <dt>订单号</dt><dd id="order-no">SO20260814037</dd>
+      <dt>客户</dt><dd id="customer">深圳蓝海科技</dd>
+      <dt>订单金额</dt><dd id="amount">¥ 46,300.00</dd>
+      <dt>订单状态</dt><dd id="order-status">已付款，待出库</dd>
+    </dl>
+  </section>
+
+  <section class="card" id="order-actions">
+    <h2>操作</h2>
+    <div class="bar">
+      <button data-testid="ship-btn">确认出库</button>
+      <button class="plain" data-testid="refund-btn">申请退款</button>
+      <button class="plain" data-testid="print-btn">打印面单</button>
+    </div>
+  </section>
+</div>
+
+<!-- 发布的标注基线：直接把「导出配置 JSON」的内容贴进来 -->
+<script type="application/json" id="ui-annotator-config">
+{
+  "$schema": "ui-annotator/annotation-config",
+  "version": 1,
+  "project": { "name": "订单管理平台", "framework": "html", "generator": "ui-annotator" },
+  "glossary": {
+    "出库": "仓库确认发货并扣减可用库存的动作",
+    "GMV": "成交总额，含未付款订单"
+  },
+  "pages": [
+    {
+      "id": "page-order-detail",
+      "url": "published.html",
+      "urlPattern": "/published.html",
+      "title": "订单详情",
+      "route": "/orders/:id",
+      "summary": "单个订单的详情与履约操作页，出库与退款是两条互斥的主流程。",
+      "annotations": [
+        {
+          "id": "anno-amount",
+          "seq": 1,
+          "type": "element",
+          "category": "business-rule",
+          "title": "金额门槛决定是否需要复核",
+          "body": "订单金额超过 ¥30,000 时，出库前必须由区域经理复核，否则「确认出库」不可点击。",
+          "businessLogic": {
+            "trigger": "页面加载时读取订单金额",
+            "preconditions": ["订单状态为已付款"],
+            "effect": "决定出库按钮的可用状态",
+            "rules": ["金额 > 30000 需区域经理复核", "复核意见不少于 10 个字"],
+            "errorStates": ["未复核时点击出库提示「需先完成复核」"]
+          },
+          "dataBinding": {
+            "fields": [
+              { "name": "totalAmount", "label": "订单金额", "type": "decimal", "required": true, "remark": "含税，单位元" }
+            ],
+            "apis": [{ "method": "GET", "path": "/api/orders/:id", "purpose": "取订单详情与金额" }],
+            "stateKeys": ["order.totalAmount", "order.needReview"]
+          },
+          "target": {
+            "strategies": [{ "kind": "domId", "value": "amount" }],
+            "snapshot": { "tag": "dd", "text": "¥ 46,300.00" }
+          },
+          "tags": ["金额", "审批"],
+          "status": "active",
+          "meta": { "author": "产品经理", "source": "human", "reviewed": true }
+        },
+        {
+          "id": "anno-status",
+          "seq": 2,
+          "type": "element",
+          "category": "state",
+          "title": "订单状态机",
+          "body": "待付款 → 已付款 → 已出库 → 已完成；任一环节可转入已关闭，已出库后只能走退款流程。",
+          "businessLogic": {
+            "trigger": "支付回调、出库确认、退款审批",
+            "effect": "推进订单状态并写入状态流水",
+            "rules": ["已出库不可再关闭", "退款成功后状态置为已退款"],
+            "postconditions": ["状态变更写入 order_status_log"]
+          },
+          "dataBinding": {
+            "fields": [{ "name": "status", "label": "订单状态", "type": "enum", "enumValues": ["wait", "paid", "shipped", "done", "closed", "refunded"] }],
+            "stateKeys": ["order.status"]
+          },
+          "target": {
+            "strategies": [{ "kind": "domId", "value": "order-status" }],
+            "snapshot": { "tag": "dd", "text": "已付款，待出库" }
+          },
+          "tags": ["状态机"],
+          "status": "active",
+          "meta": { "author": "产品经理", "source": "human", "reviewed": true }
+        },
+        {
+          "id": "anno-ship",
+          "seq": 3,
+          "type": "element",
+          "category": "interaction",
+          "title": "确认出库",
+          "body": "点击后校验库存与复核状态，通过则调用出库接口并扣减可用库存，失败时保持原状态并提示原因。",
+          "businessLogic": {
+            "trigger": "点击「确认出库」",
+            "preconditions": ["订单状态为已付款", "大额订单已完成复核", "库存充足"],
+            "effect": "创建出库单、扣减可用库存、状态推进为已出库",
+            "errorStates": ["库存不足提示缺货明细", "并发重复点击由幂等键拦截"]
+          },
+          "dataBinding": {
+            "apis": [{ "method": "POST", "path": "/api/orders/:id/ship", "purpose": "创建出库单" }],
+            "stateKeys": ["order.status", "inventory.available"]
+          },
+          "target": {
+            "strategies": [{ "kind": "testId", "value": "ship-btn", "extra": { "attr": "data-testid" } }],
+            "snapshot": { "tag": "button", "text": "确认出库" }
+          },
+          "tags": ["出库", "库存"],
+          "status": "active",
+          "meta": { "author": "产品经理", "source": "human", "reviewed": true }
+        },
+        {
+          "id": "anno-refund",
+          "seq": 4,
+          "type": "element",
+          "category": "permission",
+          "title": "退款入口的可见性",
+          "body": "仅已付款及之后的状态可见；只读角色不可见。退款金额默认全额，允许部分退但不得超过实付金额。",
+          "businessLogic": {
+            "trigger": "点击「申请退款」",
+            "preconditions": ["当前用户具备 order:refund 权限", "订单已付款"],
+            "effect": "打开退款申请弹窗并预填全额",
+            "rules": ["退款金额 <= 实付金额", "已退款订单不可重复申请"]
+          },
+          "dataBinding": {
+            "apis": [{ "method": "POST", "path": "/api/orders/:id/refunds", "purpose": "提交退款申请" }],
+            "stateKeys": ["auth.permissions", "order.paidAmount"]
+          },
+          "target": {
+            "strategies": [{ "kind": "testId", "value": "refund-btn", "extra": { "attr": "data-testid" } }],
+            "snapshot": { "tag": "button", "text": "申请退款" }
+          },
+          "tags": ["权限", "退款"],
+          "status": "active",
+          "meta": { "author": "产品经理", "source": "human", "reviewed": true }
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<script src="../dist/ui-annotator.umd.js"
+        data-auto
+        data-mode="view"
+        data-storage="inline"
+        data-project="订单管理平台"></script>
+</body>
+</html>

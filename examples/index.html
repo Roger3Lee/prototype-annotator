@@ -1,0 +1,45 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>ui-annotator 示例</title>
+<style>
+  body { margin:0; font:14px/1.7 "Segoe UI","Microsoft YaHei",sans-serif; background:#f4f6f9; color:#1f2937; }
+  .wrap { max-width:760px; margin:0 auto; padding:40px 24px; }
+  h1 { font-size:20px; margin-bottom:4px; }
+  .sub { color:#6b7280; margin-top:0; }
+  a.item { display:block; background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px 18px; margin-bottom:12px; text-decoration:none; color:inherit; }
+  a.item:hover { border-color:#93c5fd; }
+  a.item b { display:block; font-size:15px; color:#1d4ed8; }
+  a.item span { color:#6b7280; font-size:13px; }
+  code { background:#eef2f7; padding:1px 5px; border-radius:4px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ui-annotator 示例</h1>
+  <p class="sub">全部可以用 <code>file://</code> 双击直接打开，无需服务器。前提是先跑过一次 <code>npm run build</code>。</p>
+
+  <a class="item" href="static-html.html">
+    <b>静态 HTML · 订单管理平台</b>
+    <span>零依赖零构建，<code>&lt;script data-auto&gt;</code> 一行接入。标注存 localStorage，导出 JSON 交给 AI。</span>
+  </a>
+  <a class="item" href="published.html">
+    <b>发布态 · 内联标注 + 只读查看</b>
+    <span>标注内联在 HTML 里，只读模式启动。适合把梳理好的业务逻辑发给他人查阅。</span>
+  </a>
+  <a class="item" href="vue3.html">
+    <b>Vue 3 · 需求任务板</b>
+    <span>验证组件名与组件路径策略，列表增删后标记自动重新锚定。</span>
+  </a>
+  <a class="item" href="react.html">
+    <b>React 18 · 团队权限管理</b>
+    <span>从 fiber 上提取组件路径，筛选切换后演示降级与 orphaned 状态。</span>
+  </a>
+
+  <p class="sub" style="margin-top:24px">
+    快捷键：<code>E</code> 选元素 · <code>R</code> 框选区域 · <code>S</code> 标注清单 · <code>H</code> 显隐标记 · <code>Esc</code> 取消
+  </p>
+</div>
+</body>
+</html>
