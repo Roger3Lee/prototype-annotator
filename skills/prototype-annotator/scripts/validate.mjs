@@ -12,7 +12,7 @@ import { existsSync } from 'node:fs';
 import { readText, parseArgs } from './html-utils.mjs';
 
 const USAGE = `用法:
-  node skills/prototype-annotator/scripts/validate.mjs <ai-output.json> [--context <context.json>]
+  node scripts/validate.mjs <ai-output.json> [--context <context.json>]
 
 参数:
   <ai-output.json>   AI 产出的 JSON，也可以是完整配置（含 pages）
@@ -111,7 +111,17 @@ function checkAiOutput(doc) {
         warnings.push(`${at}.confidence 应是 0~1 的数字，当前「${anno.confidence}」`);
       }
     }
-    if (anno.tags != null && !Array.isArray(anno.tags)) warnings.push(`${at}.tags 应是数组`);
+        if (anno.tags != null && !Array.isArray(anno.tags)) warnings.push(`${at}.tags 应是数组`);
+
+    // 区域标注依赖坐标 rect，只能在工具里手动框选，AI 产不出可用的 target
+    if (anno.type === 'region') {
+      errors.push(`${at}.type 为 region，但 AI 输出不支持区域标注，请改为引用具体元素的 ref`);
+    } else if (anno.type != null && anno.type !== 'element') {
+      warnings.push(`${at}.type「${anno.type}」未知，AI 输出只应产出 element 类型（省略即为 element）`);
+    }
+    if (anno.rect != null || anno.target != null) {
+      warnings.push(`${at} 带了 rect/target，AI 输出只需给 ref，定位线索由工具导入时采集`);
+    }
 
     checkBusinessLogic(anno.businessLogic, `${at}.businessLogic`);
     checkDataBinding(anno.dataBinding, `${at}.dataBinding`);

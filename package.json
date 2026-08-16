@@ -24,7 +24,8 @@
     "build": "node build.mjs",
     "dev": "node build.mjs --watch --serve",
     "serve": "node build.mjs --serve",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "skill:install": "node tools/install-skill.mjs"
   },
   "keywords": [
     "annotation",

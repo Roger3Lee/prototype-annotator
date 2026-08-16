@@ -82,6 +82,9 @@ npm run build
 
 配套的 AI 提示词规范见 [skills/prototype-annotator/SKILL.md](skills/prototype-annotator/SKILL.md)。
 
+`skills/prototype-annotator/` 是这个 skill 的唯一来源，整个目录拷走或打成 zip 即可使用。想让 Qoder
+在本仓库自动发现它，跑 `npm run skill:install` 同步一份到 `.qoder/skills/`（该目录不入库，改完 skill 记得重跑）。
+
 ---
 
 ## 元素定位：多重策略 + 自动降级

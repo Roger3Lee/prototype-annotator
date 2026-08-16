@@ -3,8 +3,8 @@ name: prototype-annotator
 description: >-
   AI-first UI annotation skill. Reads AI context JSON exported by ui-annotator, autonomously
   selects elements to annotate based on business-logic priority, produces validated JSON
-  annotations, and runs scripts to inject/validate/publish. Designed for LLM agents — not
-  humans. Trigger when: user provides AI context JSON, asks to annotate a prototype,
+  annotations, and runs scripts to inject/validate/publish. Trigger when: user provides
+  AI context JSON, asks to annotate a prototype,
   generate ai-design config, validate annotation JSON, or publish annotated pages.
 ---
 
@@ -82,8 +82,8 @@ P4 — 纯展示（一般不标注）
    - regions 语义 → permission 和 state
 5. 逐条撰写标注，严格按 §4 输出契约
 6. 组装：{ annotations, pageSummary, glossary }
-7. 跑 validate.mjs，有 error 修正后重跑
-8. 输出 JSON 文件
+7. 跑 validate.mjs，有 error 修正后重跑，直到通过
+8. 写入 ai-output.json，然后按 §3D 交付
 ```
 
 ### 3B. 增量补充
@@ -97,6 +97,23 @@ P4 — 纯展示（一般不标注）
 3. 从 `body` 自然语言中抽取 `businessLogic` 字段
 4. 含义模糊时保留原文 + `category` 改 `todo` + body 末尾追加「（待确认：问题）」
 5. 只修笔误，不新增人工没表达过的含义
+
+### 3D. 交付闭环（ai-output.json 如何变成配置）
+
+`ai-output.json` **还不是**最终配置。`ref` 只能在**打开着页面的浏览器里**解析成定位线索 —— `ref → 元素` 的映射是抽取上下文时的运行时状态，上下文 JSON 里并不包含它。完整链路：
+
+```
+AI 产出 ai-output.json
+  → node scripts/validate.mjs ai-output.json --context context.json   # 通过后再继续
+  → 在页面工具栏「导入」里粘贴（等价于调用 annotator.applyAiResult(json)）
+  → 工具解析 ref、采集定位线索、生成标注
+  → 工具「导出」得到完整配置 config.json（含 pages[]）
+  → node scripts/publish.mjs config.json page.html -o review.html     # 可选，只读评审页
+```
+
+导入后工具会报告 `added / updated / skipped`。`skipped` 非空说明有 ref 没对上，按 §5 核查后重出。
+
+**不要自己把 ai-output.json 改写成带 `pages[]` 的配置** —— 手写的定位线索命中不了真实元素，`publish.mjs` 只接受工具导出的配置。
 
 ---
 
@@ -182,10 +199,6 @@ P4 — 纯展示（一般不标注）
 
 不编造不存在的 ref、接口路径、字段名、表名、数字阈值。不确定时用 `todo` + 低 `confidence`。
 
-### 不重复
-
-标注前扫描 `existingAnnotations`，不重复已覆盖内容。
-
 ---
 
 ## 6. 质量准则
@@ -228,7 +241,7 @@ P4 — 纯展示（一般不标注）
 5. 未重复 existingAnnotations 已覆盖内容
 6. body 不是界面文案的直接复制
 7. 总数 ≤ 25 条
-8. 输出是纯 JSON，无额外文字
+8. 写入文件的内容是纯 JSON —— 无 Markdown 代码围栏、无前后解释文字
 
 ---
 
@@ -258,7 +271,7 @@ node scripts/inject.mjs page.html --remove     # 撤掉注入
 # 验证标注 JSON（质量闸门，产出后必须跑）
 node scripts/validate.mjs ai-output.json --context context.json
 
-# 生成只读标注页
+# 生成只读标注页（config.json 是工具「导出」的完整配置，不是 ai-output.json）
 node scripts/publish.mjs config.json page.html -o review.html
 ```
 
