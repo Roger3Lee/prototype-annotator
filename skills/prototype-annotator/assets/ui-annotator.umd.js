@@ -512,6 +512,9 @@ var UIAnnotator = (() => {
     currentPage({ create = true } = {}) {
       const key = this.pageKey;
       let page = this.config.pages.find((p) => p.urlPattern === key);
+      if (!page) {
+        page = this.config.pages.find((p) => key.endsWith(p.urlPattern) || p.urlPattern.endsWith(key));
+      }
       if (!page && create) {
         page = createPage({
           url: currentUrl(),

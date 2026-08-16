@@ -46,6 +46,13 @@ export class AnnotationStore extends Emitter {
   currentPage({ create = true } = {}) {
     const key = this.pageKey;
     let page = this.config.pages.find((p) => p.urlPattern === key);
+    // 精确匹配失败时，按文件名后缀匹配：
+    //   http://localhost:5180/examples/published.html  → key = /examples/published.html
+    //   内联 JSON 里写的是 /published.html
+    // 两者应视为同一页面，否则 file:// 导出的配置无法在 http 服务器下回放。
+    if (!page) {
+      page = this.config.pages.find((p) => key.endsWith(p.urlPattern) || p.urlPattern.endsWith(key));
+    }
     if (!page && create) {
       page = createPage({
         url: currentUrl(),
