@@ -29,6 +29,8 @@ export class MarkerLayer {
     this.entries = new Map();
     this.selectedId = null;
     this.visible = true;
+    /** 默认展开：标记以卡片形式展示标注标题，而非仅数字别针 */
+    this.expanded = true;
     /** 查看态只读，编辑态可点开编辑面板 */
     this.readOnly = false;
 
@@ -150,13 +152,26 @@ export class MarkerLayer {
       });
       this.layer.append(entry.marker);
     }
-    entry.marker.textContent = String(annotation.seq);
-    entry.marker.style.background = color;
+
+    // 根据展开状态重建标记内容
+    entry.marker.textContent = '';
+    if (this.expanded) {
+      entry.marker.append(
+        h('span.seq-badge', { text: String(annotation.seq) }),
+        h('span.m-title', { text: annotation.title || '(未命名)' }),
+      );
+    } else {
+      entry.marker.append(String(annotation.seq));
+    }
+
+    entry.marker.style.background = this.expanded ? '' : color;
     entry.marker.title = `#${annotation.seq} ${annotation.title || '(未命名)'}`;
     entry.marker.className = 'marker'
+      + (this.expanded ? ' expanded' : '')
       + (annotation.status === 'drifted' ? ' drifted' : '')
       + (annotation.status === 'orphaned' ? ' orphaned' : '')
       + (this.selectedId === annotation.id ? ' selected' : '');
+    if (this.expanded) entry.marker.style.borderLeftColor = color;
 
     // 区域型标注额外画一个虚线框
     if (annotation.type === 'region') {
@@ -207,8 +222,14 @@ export class MarkerLayer {
       if (offscreen) continue;
 
       // 别针钉在元素右上角，尽量不遮住内容
-      marker.style.left = `${rect.left + rect.width}px`;
-      marker.style.top = `${rect.top}px`;
+      if (this.expanded) {
+        // 展开态：卡片从右上角向右延伸
+        marker.style.left = `${rect.left + rect.width + 4}px`;
+        marker.style.top = `${rect.top}px`;
+      } else {
+        marker.style.left = `${rect.left + rect.width}px`;
+        marker.style.top = `${rect.top}px`;
+      }
 
       if (region) {
         Object.assign(region.style, {
@@ -247,6 +268,15 @@ export class MarkerLayer {
     this.visible = visible;
     this.layer.classList.toggle('hidden', !visible);
     if (visible) this._position();
+  }
+
+  /** 切换标记的展开/收起状态：展开显示卡片（序号+标题），收起仅显示数字别针 */
+  toggleExpanded() {
+    this.expanded = !this.expanded;
+    this.layer.classList.toggle('expanded', this.expanded);
+    for (const entry of this.entries.values()) this._ensureNodes(entry);
+    this._position();
+    return this.expanded;
   }
 
   select(id, { scroll = false } = {}) {

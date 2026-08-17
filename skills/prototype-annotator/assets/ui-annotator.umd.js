@@ -1990,6 +1990,7 @@ var UIAnnotator = (() => {
       this.entries = /* @__PURE__ */ new Map();
       this.selectedId = null;
       this.visible = true;
+      this.expanded = true;
       this.readOnly = false;
       this._reflow = throttleRaf(() => this._position());
       this._tooltipFor = null;
@@ -2092,10 +2093,19 @@ var UIAnnotator = (() => {
         });
         this.layer.append(entry.marker);
       }
-      entry.marker.textContent = String(annotation.seq);
-      entry.marker.style.background = color;
+      entry.marker.textContent = "";
+      if (this.expanded) {
+        entry.marker.append(
+          h("span.seq-badge", { text: String(annotation.seq) }),
+          h("span.m-title", { text: annotation.title || "(未命名)" })
+        );
+      } else {
+        entry.marker.append(String(annotation.seq));
+      }
+      entry.marker.style.background = this.expanded ? "" : color;
       entry.marker.title = `#${annotation.seq} ${annotation.title || "(未命名)"}`;
-      entry.marker.className = "marker" + (annotation.status === "drifted" ? " drifted" : "") + (annotation.status === "orphaned" ? " orphaned" : "") + (this.selectedId === annotation.id ? " selected" : "");
+      entry.marker.className = "marker" + (this.expanded ? " expanded" : "") + (annotation.status === "drifted" ? " drifted" : "") + (annotation.status === "orphaned" ? " orphaned" : "") + (this.selectedId === annotation.id ? " selected" : "");
+      if (this.expanded) entry.marker.style.borderLeftColor = color;
       if (annotation.type === "region") {
         if (!entry.region) {
           entry.region = h("div.region");
@@ -2134,8 +2144,13 @@ var UIAnnotator = (() => {
         marker.classList.toggle("hidden", offscreen);
         region == null ? void 0 : region.classList.toggle("hidden", offscreen);
         if (offscreen) continue;
-        marker.style.left = `${rect.left + rect.width}px`;
-        marker.style.top = `${rect.top}px`;
+        if (this.expanded) {
+          marker.style.left = `${rect.left + rect.width + 4}px`;
+          marker.style.top = `${rect.top}px`;
+        } else {
+          marker.style.left = `${rect.left + rect.width}px`;
+          marker.style.top = `${rect.top}px`;
+        }
         if (region) {
           Object.assign(region.style, {
             left: `${rect.left}px`,
@@ -2168,6 +2183,14 @@ var UIAnnotator = (() => {
       this.visible = visible;
       this.layer.classList.toggle("hidden", !visible);
       if (visible) this._position();
+    }
+    /** 切换标记的展开/收起状态：展开显示卡片（序号+标题），收起仅显示数字别针 */
+    toggleExpanded() {
+      this.expanded = !this.expanded;
+      this.layer.classList.toggle("expanded", this.expanded);
+      for (const entry of this.entries.values()) this._ensureNodes(entry);
+      this._position();
+      return this.expanded;
     }
     select(id, { scroll = false } = {}) {
       var _a, _b;
@@ -2711,6 +2734,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { border-color: transparent; background: transparent; }
 .btn.ghost:hover { background: #f1f5f9; }
+/* ghost 的透明背景会盖掉 .btn.active 的强调色，只剩白色图标看不见，这里补回来 */
+.btn.ghost.active, .btn.ghost.active:hover { background: var(--anno-accent); border-color: var(--anno-accent); color: #fff; }
 .btn.danger { color: #dc2626; border-color: #fecaca; }
 .btn.danger:hover { background: #fef2f2; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -2822,6 +2847,52 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .marker.drifted { border-color: #fbbf24; border-style: dashed; }
 .marker.orphaned { opacity: .45; }
 .marker.selected { transform: scale(1.25); box-shadow: 0 0 0 4px rgba(79, 70, 229, .3); }
+
+/* 展开态：标记以卡片形式展示序号 + 标题 */
+.marker.expanded {
+  width: auto;
+  height: auto;
+  min-height: 22px;
+  max-width: 220px;
+  margin: -2px 0 0 0;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 11px;
+  font-weight: 400;
+  border: 1px solid var(--anno-border);
+  border-left: 3px solid var(--anno-accent);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .12);
+  padding: 4px 8px 4px 6px;
+  gap: 5px;
+  justify-content: flex-start;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.marker.expanded:hover { transform: none; box-shadow: 0 3px 12px rgba(15, 23, 42, .18); z-index: 2; }
+.marker.expanded .seq-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--anno-accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.marker.expanded .m-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+}
 
 /* 区域型标注的边框 */
 .region {
@@ -3140,7 +3211,7 @@ details.group > summary::marker { color: #cbd5e1; }
     --anno-border: #334155;
     color: var(--anno-fg);
   }
-  .btn:hover, .btn.ghost:hover { background: #334155; }
+  .btn:hover:not(.active), .btn.ghost:hover:not(.active) { background: #334155; }
   .panel header, .panel footer, .modal footer { background: #0f172a; }
   .field input[type=text], .field textarea, .field select { background: #0f172a; color: var(--anno-fg); }
   .cats button { background: #0f172a; }
@@ -3257,6 +3328,10 @@ details.group > summary::marker { color: #cbd5e1; }
         title: "显示/隐藏标记 (H)",
         onclick: () => this.toggleMarkers()
       }, [icon(ICONS.eye)]);
+      this.expandBtn = h("button.btn.ghost", {
+        title: "展开/收起标注内容 (X)",
+        onclick: () => this.toggleExpand()
+      }, [icon(ICONS.list)]);
       this.aiBtn = h("button.btn.ghost", {
         title: "AI 生成标注：复制提示词",
         onclick: () => this.modal.show("prompt")
@@ -3274,6 +3349,7 @@ details.group > summary::marker { color: #cbd5e1; }
         this.countEl,
         this.listBtn,
         this.eyeBtn,
+        this.expandBtn,
         h("span.sep"),
         this.aiBtn,
         this.exportBtn
@@ -3360,6 +3436,11 @@ details.group > summary::marker { color: #cbd5e1; }
       this.markers.setVisible(next);
       this.eyeBtn.classList.toggle("active", !next);
       this.toast(next ? "已显示标记" : "已隐藏标记");
+    }
+    toggleExpand() {
+      const next = this.markers.toggleExpanded();
+      this.expandBtn.classList.toggle("active", !next);
+      this.toast(next ? "标注已展开" : "标注已收起");
     }
     /** 拾取到元素：可能是新增标注，也可能是给已有标注重新指定挂载点 */
     _handlePicked(el) {
@@ -3470,6 +3551,10 @@ details.group > summary::marker { color: #cbd5e1; }
           case "h":
             event.preventDefault();
             this.toggleMarkers();
+            break;
+          case "x":
+            event.preventDefault();
+            this.toggleExpand();
             break;
           default:
             break;

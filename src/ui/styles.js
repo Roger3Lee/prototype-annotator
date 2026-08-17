@@ -49,6 +49,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { border-color: transparent; background: transparent; }
 .btn.ghost:hover { background: #f1f5f9; }
+/* ghost 的透明背景会盖掉 .btn.active 的强调色，只剩白色图标看不见，这里补回来 */
+.btn.ghost.active, .btn.ghost.active:hover { background: var(--anno-accent); border-color: var(--anno-accent); color: #fff; }
 .btn.danger { color: #dc2626; border-color: #fecaca; }
 .btn.danger:hover { background: #fef2f2; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -160,6 +162,52 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .marker.drifted { border-color: #fbbf24; border-style: dashed; }
 .marker.orphaned { opacity: .45; }
 .marker.selected { transform: scale(1.25); box-shadow: 0 0 0 4px rgba(79, 70, 229, .3); }
+
+/* 展开态：标记以卡片形式展示序号 + 标题 */
+.marker.expanded {
+  width: auto;
+  height: auto;
+  min-height: 22px;
+  max-width: 220px;
+  margin: -2px 0 0 0;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 11px;
+  font-weight: 400;
+  border: 1px solid var(--anno-border);
+  border-left: 3px solid var(--anno-accent);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .12);
+  padding: 4px 8px 4px 6px;
+  gap: 5px;
+  justify-content: flex-start;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.marker.expanded:hover { transform: none; box-shadow: 0 3px 12px rgba(15, 23, 42, .18); z-index: 2; }
+.marker.expanded .seq-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--anno-accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.marker.expanded .m-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+}
 
 /* 区域型标注的边框 */
 .region {
@@ -478,7 +526,7 @@ details.group > summary::marker { color: #cbd5e1; }
     --anno-border: #334155;
     color: var(--anno-fg);
   }
-  .btn:hover, .btn.ghost:hover { background: #334155; }
+  .btn:hover:not(.active), .btn.ghost:hover:not(.active) { background: #334155; }
   .panel header, .panel footer, .modal footer { background: #0f172a; }
   .field input[type=text], .field textarea, .field select { background: #0f172a; color: var(--anno-fg); }
   .cats button { background: #0f172a; }

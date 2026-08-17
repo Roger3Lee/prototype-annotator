@@ -136,6 +136,11 @@ export class Overlay {
       onclick: () => this.toggleMarkers(),
     }, [icon(ICONS.eye)]);
 
+    this.expandBtn = h('button.btn.ghost', {
+      title: '展开/收起标注内容 (X)',
+      onclick: () => this.toggleExpand(),
+    }, [icon(ICONS.list)]);
+
     this.aiBtn = h('button.btn.ghost', {
       title: 'AI 生成标注：复制提示词',
       onclick: () => this.modal.show('prompt'),
@@ -156,6 +161,7 @@ export class Overlay {
       this.countEl,
       this.listBtn,
       this.eyeBtn,
+      this.expandBtn,
       h('span.sep'),
       this.aiBtn,
       this.exportBtn,
@@ -254,6 +260,12 @@ export class Overlay {
     this.markers.setVisible(next);
     this.eyeBtn.classList.toggle('active', !next);
     this.toast(next ? '已显示标记' : '已隐藏标记');
+  }
+
+  toggleExpand() {
+    const next = this.markers.toggleExpanded();
+    this.expandBtn.classList.toggle('active', !next);
+    this.toast(next ? '标注已展开' : '标注已收起');
   }
 
   /** 拾取到元素：可能是新增标注，也可能是给已有标注重新指定挂载点 */
@@ -379,6 +391,10 @@ export class Overlay {
         case 'h':
           event.preventDefault();
           this.toggleMarkers();
+          break;
+        case 'x':
+          event.preventDefault();
+          this.toggleExpand();
           break;
         default:
           break;
